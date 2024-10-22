@@ -1,36 +1,20 @@
 #!/bin/bash
 
-# Installing Dependencies
-echo "########################################"
-echo "Installing packages."
-echo "########################################"
-sudo apt update -y > /dev/null
-sudo apt install wget unzip apache2 -y > /dev/null
-echo
+# Update package list and install Apache, Wget, and Unzip
+apt-get update
+apt-get install -y apache2 wget unzip
 
-# Creating Temp Directory
-echo "########################################"
-echo "Starting Artifact Deployment"
-echo "########################################"
-mkdir -p /tmp/webfiles
-cd /tmp/webfiles
-echo
+# Download the website template
+wget https://www.tooplate.com/zip-templates/2137_barista_cafe.zip
 
-wget https://www.tooplate.com/zip-templates/2137_barista_cafe.zip > /dev/null
-unzip 2137_barista_cafe.zip > /dev/null
-sudo cp -r 2137_barista_cafe/* /var/www/html/
-echo
+# Unzip the template into the Apache default directory
+unzip 2137_barista_cafe.zip -d /var/www/html/
 
-# Bounce Service
-echo "########################################"
-echo "Restarting Apache Webserver service"
-echo "########################################"
-sudo systemctl restart apache2
-echo
+# Clean up by removing the downloaded zip file
+rm 2137_barista_cafe.zip
 
-# Clean Up
-echo "########################################"
-echo "Removing Temporary Files"
-echo "########################################"
-sudo rm -rf /tmp/webfiles
-echo
+# Ensure proper ownership of the web files
+chown -R www-data:www-data /var/www/html/
+
+# Restart Apache to apply changes
+service apache2 restart
