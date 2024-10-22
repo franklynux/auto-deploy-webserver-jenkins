@@ -18,7 +18,8 @@ pipeline {
             }
         }
         
-        /*stage('Basic Tests') {
+        /* Uncomment if you need basic tests
+        stage('Basic Tests') {
             steps {
                 script {
                     echo "Running basic file checks"
@@ -57,10 +58,18 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
-                    sh """
-                        docker build -t ${DOCKER_IMAGE} . --no-cache
-                        docker images | grep ${DOCKER_IMAGE}
-                    """
+                    def buildStatus = sh(script: "docker build -t ${DOCKER_IMAGE} . --no-cache", returnStatus: true)
+                    
+                    // Check if the build was successful
+                    if (buildStatus != 0) {
+                        error 'Docker image build failed!'
+                    }
+                    
+                    // Verify the image creation
+                    def imageCheck = sh(script: "docker images | grep ${DOCKER_IMAGE}", returnStatus: true)
+                    if (imageCheck != 0) {
+                        error 'Docker image was not found after build!'
+                    }
                 }
             }
         }
