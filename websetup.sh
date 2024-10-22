@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit immediately if a command exits with a non-zero status.
+
 # Update package list and install Apache, Wget, and Unzip
 apt-get update
 apt-get install -y apache2 wget unzip
