@@ -4,6 +4,9 @@
 apt-get update
 apt-get install -y apache2 wget unzip
 
+# Set the ServerName directive to avoid FQDN error
+echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
 # Download the website template
 wget https://www.tooplate.com/zip-templates/2137_barista_cafe.zip
 
