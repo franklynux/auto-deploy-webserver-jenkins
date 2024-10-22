@@ -13,7 +13,7 @@ pipeline {
             steps {
                 script {
                     echo "Pulling source code from Git"
-                    git branch: 'main', url: 'https://github.com/franklynux/auto-deploy-webserver-jenkins.git'
+                    git branch: 'main', url: 'https://github.com/franklynux/Auto-Deploy-Ecommerce-Website.git'
                 }
             }
         }
@@ -23,33 +23,24 @@ pipeline {
                 script {
                     echo "Running basic file checks"
                     sh '''
-                        # Check if essential files exist
-                        if [ -f "index.html" ]; then
-                            echo "✅ index.html exists"
-                        else
-                            echo "❌ index.html is missing"
-                            exit 1
-                        fi
+                        echo "Current directory contents:"
+                        ls -la
                         
-                        # Check if css directory exists
-                        if [ -d "css" ]; then
-                            echo "✅ css directory exists"
+                        # Check if websetup.sh exists and is executable
+                        if [ -f "websetup.sh" ]; then
+                            echo "✅ websetup.sh exists"
+                            chmod +x websetup.sh
+                            echo "✅ Made websetup.sh executable"
                         else
-                            echo "❌ css directory is missing"
-                            exit 1
-                        fi
-                        
-                        # Check if js directory exists
-                        if [ -d "js" ]; then
-                            echo "✅ js directory exists"
-                        else
-                            echo "❌ js directory is missing"
+                            echo "❌ websetup.sh is missing"
                             exit 1
                         fi
                         
                         # Check if Dockerfile exists
                         if [ -f "Dockerfile" ]; then
                             echo "✅ Dockerfile exists"
+                            echo "Dockerfile contents:"
+                            cat Dockerfile
                         else
                             echo "❌ Dockerfile is missing"
                             exit 1
@@ -65,7 +56,10 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    sh """
+                        docker build -t ${DOCKER_IMAGE} . --no-cache
+                        docker images | grep ${DOCKER_IMAGE}
+                    """
                 }
             }
         }
