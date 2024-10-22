@@ -13,7 +13,7 @@ pipeline {
             steps {
                 script {
                     echo "Pulling source code from Git"
-                    git branch: 'main', url: 'https://github.com/franklynux/Auto-Deploy-Ecommerce-Website.git'
+                    git branch: 'main', url: 'https://github.com/franklynux/auto-deploy-webserver-jenkins.git'
                 }
             }
         }
