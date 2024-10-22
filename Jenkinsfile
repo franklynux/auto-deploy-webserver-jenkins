@@ -13,7 +13,21 @@ pipeline {
             steps {
                 script {
                     echo "Pulling source code from Git"
-                    git branch: 'main', url: 'https://github.com/franklynux/auto-deploy-webserver-jenkins.git'
+                    git branch: 'main', url: 'https://github.com/franklynux/Auto-Deploy-Ecommerce-Website.git'
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    echo "Installing Python dependencies"
+                    sh '''
+                        python3 -m pip install --upgrade pip
+                        python3 -m pip install beautifulsoup4
+                        # Add any other required packages here
+                        python3 -m pip install requests
+                    '''
                 }
             }
         }
