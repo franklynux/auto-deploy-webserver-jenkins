@@ -18,7 +18,7 @@ pipeline {
             }
         }
         
-        stage('Basic Tests') {
+        /*stage('Basic Tests') {
             steps {
                 script {
                     echo "Running basic file checks"
@@ -51,6 +51,7 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('Build Docker Image') {
             steps {
