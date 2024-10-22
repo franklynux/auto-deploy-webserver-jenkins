@@ -1,7 +1,10 @@
 FROM ubuntu:20.04
 
+# Set the environment to noninteractive to avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Update and install necessary packages
-RUN apt-get update && apt-get install -y wget unzip apache2
+RUN apt-get update && apt-get install -y wget unzip apache2 tzdata
 
 # Copy the setup script
 COPY websetup.sh /websetup.sh
