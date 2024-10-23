@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        EC2_IP = '44.203.4.54'
+        EC2_IP = '3.86.157.149'
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKER_IMAGE = "franklynux/e-commerce-web:${BUILD_NUMBER}"
         EC2_INSTANCE_KEY = credentials('ec2-ssh-key')
@@ -17,47 +17,15 @@ pipeline {
                 }
             }
         }
-        
-        /* Uncomment if you need basic tests
-        stage('Basic Tests') {
-            steps {
-                script {
-                    echo "Running basic file checks"
-                    sh '''
-                        echo "Current directory contents:"
-                        ls -la
-                        
-                        # Check if websetup.sh exists and is executable
-                        if [ -f "websetup.sh" ]; then
-                            echo "✅ websetup.sh exists"
-                            chmod +x websetup.sh
-                            echo "✅ Made websetup.sh executable"
-                        else
-                            echo "❌ websetup.sh is missing"
-                            exit 1
-                        fi
-                        
-                        # Check if Dockerfile exists
-                        if [ -f "Dockerfile" ]; then
-                            echo "✅ Dockerfile exists"
-                            echo "Dockerfile contents:"
-                            cat Dockerfile
-                        else
-                            echo "❌ Dockerfile is missing"
-                            exit 1
-                        fi
-                        
-                        echo "All basic checks passed successfully! ✅"
-                    '''
-                }
-            }
-        }
-        */
 
         stage('Build Docker Image') {
             steps {
                 script {
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
+                    
+                    // Check Docker system status
+                    sh 'docker info'
+                    
                     def buildStatus = sh(script: "docker build -t ${DOCKER_IMAGE} . --no-cache", returnStatus: true)
                     
                     // Check if the build was successful
@@ -65,7 +33,8 @@ pipeline {
                         error 'Docker image build failed!'
                     }
                     
-                    // Verify the image creation
+                    // Verify the image creation and show all images
+                    sh 'docker images'
                     def imageCheck = sh(script: "docker images | grep ${DOCKER_IMAGE}", returnStatus: true)
                     if (imageCheck != 0) {
                         error 'Docker image was not found after build!'
@@ -80,9 +49,32 @@ pipeline {
                     echo "Pushing Docker Image to Docker Hub"
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${DOCKER_IMAGE}
-                            docker rmi ${DOCKER_IMAGE}
+                            # Debug steps
+                            echo "Attempting to login to Docker Hub as $DOCKER_USER"
+                            echo "Current Docker images:"
+                            docker images
+                            
+                            # Login to Docker Hub with error checking
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin || {
+                                echo "Docker Hub login failed!"
+                                exit 1
+                            }
+                            
+                            echo "Pushing image: ${DOCKER_IMAGE}"
+                            docker push ${DOCKER_IMAGE} || {
+                                echo "Docker push failed!"
+                                exit 1
+                            }
+                            
+                            echo "Cleaning up local image"
+                            docker rmi ${DOCKER_IMAGE} || echo "Warning: Failed to remove local image"
+                            
+                            # Verify push success by trying to pull
+                            echo "Verifying push by pulling image"
+                            docker pull ${DOCKER_IMAGE} || {
+                                echo "Failed to verify pushed image!"
+                                exit 1
+                            }
                         '''
                     }
                 }
@@ -94,10 +86,17 @@ pipeline {
                 script {
                     echo "Deploying to EC2 Instance: ${EC2_IP}"
                     def deployCmd = """
-                        docker pull ${DOCKER_IMAGE}
+                        docker pull ${DOCKER_IMAGE} || {
+                            echo "Failed to pull latest image!"
+                            exit 1
+                        }
                         docker stop e-commerce-web || true
                         docker rm e-commerce-web || true
-                        docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE}
+                        docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || {
+                            echo "Failed to start container!"
+                            exit 1
+                        }
+                        echo "Container started successfully"
                     """
                     sshagent([EC2_INSTANCE_KEY]) {
                         sh """
@@ -114,6 +113,12 @@ pipeline {
             script {
                 echo 'Cleaning up workspace...'
                 cleanWs()
+                sh '''
+                    echo "Final Docker system status:"
+                    docker info
+                    echo "Remaining Docker images:"
+                    docker images
+                '''
             }
         }
         success {
@@ -124,6 +129,12 @@ pipeline {
         failure {
             script {
                 echo 'Pipeline failed. Check the logs for details. ❌'
+                sh '''
+                    echo "Docker system status at failure:"
+                    docker info
+                    echo "Docker images at failure:"
+                    docker images
+                '''
             }
         }
     }
