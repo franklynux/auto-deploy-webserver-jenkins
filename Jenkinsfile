@@ -22,14 +22,11 @@ pipeline {
             steps {
                 script {
                     echo "Starting Docker Image Build Stage"
-
                     sh '''
                         echo "Current Docker images before build:"
                         docker images
                     '''
-
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
-
                     def buildStatus = sh(script: """
                         docker rmi ${DOCKER_IMAGE} || true
                         docker build -t ${DOCKER_IMAGE} . --no-cache
@@ -45,9 +42,7 @@ pipeline {
                             exit 1
                         }
                     '''
-
                     echo "Docker image built and verified successfully"
-
                     sh '''
                         echo "Docker images after successful build:"
                         docker images
