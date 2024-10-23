@@ -15,6 +15,9 @@ wget https://www.tooplate.com/zip-templates/2137_barista_cafe.zip
 # Unzip the template into the Apache default directory
 unzip 2137_barista_cafe.zip -d /var/www/html/
 
+# Move the webapp files into the Apache default directory
+mv /var/www/html/2137_barista_cafe/* /var/www/html/
+
 # Clean up by removing the downloaded zip file
 rm 2137_barista_cafe.zip
 

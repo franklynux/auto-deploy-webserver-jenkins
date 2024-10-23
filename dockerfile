@@ -16,9 +16,6 @@ RUN ls -la /websetup.sh && cat /websetup.sh
 # Make the script executable and run it
 RUN chmod +x /websetup.sh && /websetup.sh
 
-# Copy your web application's files into the Apache document root
-COPY ./2137_barista_cafe/ /var/www/html/
-
 # Expose port 80 for web traffic
 EXPOSE 80
 
