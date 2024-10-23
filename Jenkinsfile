@@ -22,10 +22,13 @@ pipeline {
             steps {
                 script {
                     echo "Starting Docker Image Build Stage"
+
+                    // Show current Docker images before the build
                     sh '''
                         echo "Current Docker images before build:"
                         docker images
                     '''
+
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
                     def buildStatus = sh(script: """
                         docker rmi ${DOCKER_IMAGE} || true
@@ -36,13 +39,20 @@ pipeline {
                         error "Docker image build failed with status: ${buildStatus}"
                     }
 
-                    sh '''
-                        docker images | grep ${DOCKER_IMAGE.split(':')[0]} | grep ${DOCKER_IMAGE.split(':')[1]} || {
+                    // Get image name and tag
+                    def imageName = DOCKER_IMAGE.tokenize(':')[0]
+                    def imageTag = DOCKER_IMAGE.tokenize(':')[1]
+
+                    // Verify the newly built image
+                    sh """
+                        docker images | grep ${imageName} | grep ${imageTag} || {
                             echo "Failed to find newly built image"
                             exit 1
                         }
-                    '''
+                    """
                     echo "Docker image built and verified successfully"
+
+                    // Show final image list after build
                     sh '''
                         echo "Docker images after successful build:"
                         docker images
@@ -63,11 +73,13 @@ pipeline {
                                 exit 1
                             }
 
+                            echo "Pushing image: ${DOCKER_IMAGE}"
                             docker push ${DOCKER_IMAGE} || {
                                 echo "Docker push failed!"
                                 exit 1
                             }
 
+                            echo "Cleaning up local image"
                             docker rmi ${DOCKER_IMAGE} || echo "Warning: Failed to remove local image"
                         """
                     }
@@ -89,12 +101,13 @@ pipeline {
                                     sudo apt install -y docker.io
                                     sudo systemctl start docker
                                     sudo systemctl enable docker
+                                    sudo usermod -aG docker ubuntu
                                     echo "Docker installed successfully"
                                 else
                                     echo "Docker already installed"
                                 fi
 
-                                # Use sudo for Docker commands
+                                # Use sudo for Docker commands to avoid permission issues
                                 sudo docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
                                 sudo docker stop e-commerce-web || true
                                 sudo docker rm e-commerce-web || true
