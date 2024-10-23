@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        EC2_IP = '3.86.157.149'
+        EC2_IP = '54.90.182.231'
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKER_IMAGE = "franklynux/e-commerce-web:${BUILD_NUMBER}"
         EC2_INSTANCE_KEY = credentials('ec2-ssh-key')
