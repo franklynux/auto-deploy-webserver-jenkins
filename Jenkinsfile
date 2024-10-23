@@ -22,10 +22,13 @@ pipeline {
             steps {
                 script {
                     echo "Starting Docker Image Build Stage"
+
+                    // Show current Docker images before the build
                     sh '''
                         echo "Current Docker images before build:"
                         docker images
                     '''
+
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
                     def buildStatus = sh(script: """
                         docker rmi ${DOCKER_IMAGE} || true
@@ -36,6 +39,7 @@ pipeline {
                         error "Docker image build failed with status: ${buildStatus}"
                     }
 
+                    // Verify the newly built image
                     sh '''
                         docker images | grep ${DOCKER_IMAGE.split(':')[0]} | grep ${DOCKER_IMAGE.split(':')[1]} || {
                             echo "Failed to find newly built image"
@@ -43,6 +47,8 @@ pipeline {
                         }
                     '''
                     echo "Docker image built and verified successfully"
+
+                    // Show final image list after build
                     sh '''
                         echo "Docker images after successful build:"
                         docker images
@@ -63,11 +69,13 @@ pipeline {
                                 exit 1
                             }
 
+                            echo "Pushing image: ${DOCKER_IMAGE}"
                             docker push ${DOCKER_IMAGE} || {
                                 echo "Docker push failed!"
                                 exit 1
                             }
 
+                            echo "Cleaning up local image"
                             docker rmi ${DOCKER_IMAGE} || echo "Warning: Failed to remove local image"
                         """
                     }
@@ -76,36 +84,36 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-    steps {
-        script {
-            echo "Deploying to EC2 Instance: ${EC2_IP}"
-            sshagent(['ec2-ssh-key']) {
-                sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                        # Check if Docker is installed, if not, install it
-                        if ! [ -x "\$(command -v docker)" ]; then
-                            echo "Docker not found, installing Docker..."
-                            sudo apt update
-                            sudo apt install -y docker.io
-                            sudo systemctl start docker
-                            sudo systemctl enable docker
-                            sudo usermod -aG docker ubuntu
-                            echo "Docker installed successfully"
-                        else
-                            echo "Docker already installed"
-                        fi
+            steps {
+                script {
+                    echo "Deploying to EC2 Instance: ${EC2_IP}"
+                    sshagent(['ec2-ssh-key']) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                                # Check if Docker is installed, if not, install it
+                                if ! [ -x "\$(command -v docker)" ]; then
+                                    echo "Docker not found, installing Docker..."
+                                    sudo apt update
+                                    sudo apt install -y docker.io
+                                    sudo systemctl start docker
+                                    sudo systemctl enable docker
+                                    sudo usermod -aG docker ubuntu
+                                    echo "Docker installed successfully"
+                                else
+                                    echo "Docker already installed"
+                                fi
 
-                        docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
-                        docker stop e-commerce-web || true
-                        docker rm e-commerce-web || true
-                        docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
-                    '
-                """
+                                docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
+                                docker stop e-commerce-web || true
+                                docker rm e-commerce-web || true
+                                docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
+                            '
+                        """
+                    }
+                }
             }
         }
     }
-}
-
 
     post {
         always {
