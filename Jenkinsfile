@@ -106,7 +106,7 @@ pipeline {
             steps {
                 script {
                     echo "Deploying to EC2 Instance: ${EC2_IP}"
-                    sshagent([EC2_INSTANCE_KEY]) {
+                    sshagent(['ec2-ssh-key']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
                                 docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
