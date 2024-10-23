@@ -39,13 +39,17 @@ pipeline {
                         error "Docker image build failed with status: ${buildStatus}"
                     }
 
+                    // Get image name and tag
+                    def imageName = DOCKER_IMAGE.tokenize(':')[0]
+                    def imageTag = DOCKER_IMAGE.tokenize(':')[1]
+
                     // Verify the newly built image
-                    sh '''
-                        docker images | grep ${DOCKER_IMAGE.split(':')[0]} | grep ${DOCKER_IMAGE.split(':')[1]} || {
+                    sh """
+                        docker images | grep ${imageName} | grep ${imageTag} || {
                             echo "Failed to find newly built image"
                             exit 1
                         }
-                    '''
+                    """
                     echo "Docker image built and verified successfully"
 
                     // Show final image list after build
