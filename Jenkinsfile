@@ -103,44 +103,22 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-            steps {
-                script {
-                    echo "Deploying to EC2 Instance: ${EC2_IP}"
-                    
-                    // Verify SSH credentials are available
-                    echo "Verifying SSH credentials..."
-                    
-                    def deployCmd = """
-                        docker pull ${DOCKER_IMAGE} || {
-                            echo "Failed to pull latest image!"
-                            exit 1
-                        }
-                        docker stop e-commerce-web || true
-                        docker rm e-commerce-web || true
-                        docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || {
-                            echo "Failed to start container!"
-                            exit 1
-                        }
-                        echo "Container started successfully"
-                    """
-
-                    // Improved SSH handling
-                    withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                        sh """
-                            # Test SSH connection first
-                            ssh -i "\${SSH_KEY}" -o StrictHostKeyChecking=no -o BatchMode=yes ubuntu@${EC2_IP} 'echo "SSH connection successful"' || {
-                                echo "Failed to establish SSH connection"
-                                exit 1
-                            }
-                            
-                            # If SSH test successful, execute deployment
-                            ssh -i "\${SSH_KEY}" -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '${deployCmd}'
-                        """
-                    }
-                }
+           steps {
+              script {
+                 echo "Deploying to EC2 Instance: ${EC2_IP}"
+                 sshagent([EC2_INSTANCE_KEY]) {
+                    sh """
+                      ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                          docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
+                          docker stop e-commerce-web || true
+                          docker rm e-commerce-web || true
+                          docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
+                      '
+                  """
             }
         }
     }
+}
 
     post {
         always {
@@ -168,3 +146,4 @@ pipeline {
             }
         }
     }
+}
