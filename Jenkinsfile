@@ -76,36 +76,36 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-            steps {
-                script {
-                    echo "Deploying to EC2 Instance: ${EC2_IP}"
-                    sshagent(['ec2-ssh-key']) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                                # Check if Docker is installed, if not, install it
-                                if ! [ -x "$(command -v docker)" ]; then
-                                    echo "Docker not found, installing Docker..."
-                                    sudo apt update
-                                    sudo apt install -y docker.io
-                                    sudo systemctl start docker
-                                    sudo systemctl enable docker
-                                    sudo usermod -aG docker ubuntu
-                                    echo "Docker installed successfully"
-                                else
-                                    echo "Docker already installed"
-                                fi
+    steps {
+        script {
+            echo "Deploying to EC2 Instance: ${EC2_IP}"
+            sshagent(['ec2-ssh-key']) {
+                sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                        # Check if Docker is installed, if not, install it
+                        if ! [ -x "\$(command -v docker)" ]; then
+                            echo "Docker not found, installing Docker..."
+                            sudo apt update
+                            sudo apt install -y docker.io
+                            sudo systemctl start docker
+                            sudo systemctl enable docker
+                            sudo usermod -aG docker ubuntu
+                            echo "Docker installed successfully"
+                        else
+                            echo "Docker already installed"
+                        fi
 
-                                docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
-                                docker stop e-commerce-web || true
-                                docker rm e-commerce-web || true
-                                docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
-                            '
-                        """
-                    }
-                }
+                        docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
+                        docker stop e-commerce-web || true
+                        docker rm e-commerce-web || true
+                        docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
+                    '
+                """
             }
         }
     }
+}
+
 
     post {
         always {
