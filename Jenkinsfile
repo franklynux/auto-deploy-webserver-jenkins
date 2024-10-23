@@ -22,29 +22,29 @@ pipeline {
             steps {
                 script {
                     echo "Starting Docker Image Build Stage"
-                    
+
                     // Debug: Show current images before build
                     sh '''
                         echo "Current Docker images before build:"
                         docker images
                     '''
-                    
+
                     echo "Building Docker Image: ${DOCKER_IMAGE}"
-                    
+
                     // Build the image with basic command
                     def buildStatus = sh(script: """
                         # Remove any existing image with the same tag
                         docker rmi ${DOCKER_IMAGE} || true
-                        
+
                         # Build new image
                         docker build -t ${DOCKER_IMAGE} . --no-cache
                     """, returnStatus: true)
-                    
+
                     // Check build status
                     if (buildStatus != 0) {
                         error "Docker image build failed with status: ${buildStatus}"
                     }
-                    
+
                     // Verify the image exists
                     def verifyCmd = """
                         echo "Verifying image build..."
@@ -53,9 +53,9 @@ pipeline {
                             exit 1
                         }
                     """
-                    
+
                     def verifyStatus = sh(script: verifyCmd, returnStatus: true)
-                    
+
                     if (verifyStatus != 0) {
                         error """
                             Failed to verify Docker image build!
@@ -64,9 +64,9 @@ pipeline {
                             \$(docker images)
                         """
                     }
-                    
+
                     echo "Docker image built and verified successfully"
-                    
+
                     // Show final image list
                     sh '''
                         echo "Docker images after successful build:"
@@ -87,13 +87,13 @@ pipeline {
                                 echo "Docker Hub login failed!"
                                 exit 1
                             }
-                            
+
                             echo "Pushing image: ${DOCKER_IMAGE}"
                             docker push ${DOCKER_IMAGE} || {
                                 echo "Docker push failed!"
                                 exit 1
                             }
-                            
+
                             echo "Cleaning up local image"
                             docker rmi ${DOCKER_IMAGE} || echo "Warning: Failed to remove local image"
                         """
@@ -103,22 +103,23 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-           steps {
-              script {
-                 echo "Deploying to EC2 Instance: ${EC2_IP}"
-                 sshagent([EC2_INSTANCE_KEY]) {
-                    sh """
-                      ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                          docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
-                          docker stop e-commerce-web || true
-                          docker rm e-commerce-web || true
-                          docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
-                      '
-                  """
+            steps {
+                script {
+                    echo "Deploying to EC2 Instance: ${EC2_IP}"
+                    sshagent([EC2_INSTANCE_KEY]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                                docker pull ${DOCKER_IMAGE} || { echo "Failed to pull latest image!"; exit 1; }
+                                docker stop e-commerce-web || true
+                                docker rm e-commerce-web || true
+                                docker run -d --name e-commerce-web -p 80:80 ${DOCKER_IMAGE} || { echo "Failed to start container!"; exit 1; }
+                            '
+                        """
+                    }
+                }
             }
         }
     }
-}
 
     post {
         always {
